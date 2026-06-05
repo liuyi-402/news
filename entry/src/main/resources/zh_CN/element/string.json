@@ -1,0 +1,40 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "观闻"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "观闻"
+    },
+    {
+      "name": "mainability_description",
+      "value": "新闻资讯应用"
+    },
+    {
+      "name": "home",
+      "value": "首页"
+    },
+    {
+      "name": "discover",
+      "value": "发现"
+    },
+    {
+      "name": "publish",
+      "value": "发布"
+    },
+    {
+      "name": "message",
+      "value": "消息"
+    },
+    {
+      "name": "profile",
+      "value": "我的"
+    },
+    {
+      "name": "permission_internet_reason",
+      "value": "用于获取网络新闻数据和图片"
+    }
+  ]
+}
