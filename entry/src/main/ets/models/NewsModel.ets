@@ -126,6 +126,7 @@ export interface Topic {
   followCount: number;           // 关注数
   newsCount: number;             // 新闻数
   isFollowed: boolean;           // 是否已关注
+  category?: string;             // 对应的新闻分类（可选）
 }
 
 /**

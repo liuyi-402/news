@@ -152,7 +152,8 @@ export class MockDataService {
         cover: 'https://picsum.photos/400/300?random=201',
         followCount: 125000,
         newsCount: 3580,
-        isFollowed: false
+        isFollowed: false,
+        category: '科技'
       },
       {
         id: 'topic_2',
@@ -161,7 +162,8 @@ export class MockDataService {
         cover: 'https://picsum.photos/400/300?random=202',
         followCount: 98000,
         newsCount: 2450,
-        isFollowed: false
+        isFollowed: false,
+        category: '财经'
       },
       {
         id: 'topic_3',
@@ -170,7 +172,8 @@ export class MockDataService {
         cover: 'https://picsum.photos/400/300?random=203',
         followCount: 156000,
         newsCount: 4200,
-        isFollowed: true
+        isFollowed: true,
+        category: '体育'
       },
       {
         id: 'topic_4',
@@ -179,7 +182,8 @@ export class MockDataService {
         cover: 'https://picsum.photos/400/300?random=204',
         followCount: 210000,
         newsCount: 5600,
-        isFollowed: false
+        isFollowed: false,
+        category: '娱乐'
       }
     ];
   }
@@ -188,6 +192,16 @@ export class MockDataService {
    * 根据话题获取新闻
    */
   static getNewsByTopic(topicId: string): NewsItem[] {
+    // 获取专题信息
+    const topics = MockDataService.getTopicList();
+    const topic = topics.find((t: Topic) => t.id === topicId);
+    
+    // 如果专题有对应的分类，返回该分类的新闻
+    if (topic && topic.category) {
+      return MockDataService.getNewsList(topic.category, 1);
+    }
+    
+    // 否则返回随机新闻
     return MockDataService.getNewsList(undefined, 1).slice(0, 5);
   }
 
