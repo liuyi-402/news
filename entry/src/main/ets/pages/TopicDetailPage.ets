@@ -349,7 +349,8 @@ struct TopicDetailPage {
     router.pushUrl({
       url: 'pages/NewsDetailPage',
       params: {
-        newsId: news.id
+        newsId: news.id,
+        newsItem: news  // 传递完整的新闻对象，确保详情页内容一致
       }
     }).then(() => {
       console.log('TopicDetailPage: 跳转到文章详情页成功');

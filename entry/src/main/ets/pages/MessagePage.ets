@@ -249,7 +249,7 @@ export struct MessagePage {
       case MessageType.LIKE:
         return $r('app.media.ic_like');
       case MessageType.COLLECT:
-        return $r('app.media.ic_collect');
+        return $r('app.media.ic_star');
       case MessageType.SYSTEM:
         return $r('app.media.ic_system');
       case MessageType.PRIVATE:

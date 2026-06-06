@@ -321,7 +321,7 @@ export struct NewsCardComponent {
       
       // 收藏
       Row({ space: 4 }) {
-        Image(this.newsItem.isCollected ? $r('app.media.ic_collect_active') : $r('app.media.ic_collect'))
+        Image(this.newsItem.isCollected ? $r('app.media.ic_star_active') : $r('app.media.ic_star'))
           .width(20)
           .height(20)
         

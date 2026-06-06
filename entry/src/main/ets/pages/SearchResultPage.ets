@@ -20,7 +20,57 @@ struct SearchResultPage {
   @State searchHistory: string[] = []; // 搜索历史
   @State hotSearchList: HotSearch[] = []; // 热门搜索列表
   
+  // 监听全局状态变化，当点赞状态改变时刷新搜索结果
+  @StorageLink(MockDataService.STATE_VERSION_KEY) @Watch('onStateVersionChange') stateVersion: number = 0;
+  
   private sortOptions: string[] = ['综合', '最新', '最热'];
+  
+  // 监听状态版本变化，刷新搜索结果
+  onStateVersionChange() {
+    if (this.isSearching && this.searchResults.length > 0) {
+      console.log('SearchResultPage: 检测到点赞状态变化，更新搜索结果中的点赞状态');
+      this.updateSearchResultsLikeStatus();
+    }
+  }
+  
+  /**
+   * 更新搜索结果中的点赞状态（精细更新）
+   * 只更新有变化的新闻，不重新加载整个列表
+   */
+  private updateSearchResultsLikeStatus() {
+    // 遍历列表，更新每条新闻的点赞状态
+    for (let i = 0; i < this.searchResults.length; i++) {
+      const news = this.searchResults[i];
+      const savedIsLiked = MockDataService.newsLikeStatus.get(news.id);
+      const savedLikeCount = MockDataService.newsLikeCount.get(news.id);
+      
+      // 如果该新闻有保存的点赞状态，则更新
+      if (savedIsLiked !== undefined || savedLikeCount !== undefined) {
+        const updatedNews: NewsItem = {
+          id: news.id,
+          title: news.title,
+          summary: news.summary,
+          content: news.content,
+          coverImages: news.coverImages,
+          category: news.category,
+          source: news.source,
+          author: news.author,
+          publishTime: news.publishTime,
+          readCount: news.readCount,
+          likeCount: savedLikeCount !== undefined ? savedLikeCount : news.likeCount,
+          commentCount: news.commentCount,
+          shareCount: news.shareCount,
+          collectCount: news.collectCount,
+          isLiked: savedIsLiked !== undefined ? savedIsLiked : news.isLiked,
+          isCollected: news.isCollected,
+          isRead: news.isRead,
+          type: news.type,
+          videoUrl: news.videoUrl
+        };
+        this.searchResults[i] = updatedNews;
+      }
+    }
+  }
   
   aboutToAppear() {
     // 加载搜索历史和热门搜索
@@ -362,6 +412,18 @@ struct SearchResultPage {
               newsItem: news,
               onCardClick: (item: NewsItem) => {
                 this.onNewsClick(item);
+              },
+              onLikeClick: (item: NewsItem) => {
+                this.onLikeClick(item);
+              },
+              onCommentClick: (item: NewsItem) => {
+                this.onCommentClick(item);
+              },
+              onShareClick: (item: NewsItem) => {
+                this.onShareClick(item);
+              },
+              onCollectClick: (item: NewsItem) => {
+                this.onCollectClick(item);
               }
             })
           }
@@ -469,6 +531,104 @@ struct SearchResultPage {
     }).catch((error: Error) => {
       console.error('跳转新闻详情失败:', error.message);
     });
+  }
+  
+  /**
+   * 点赞新闻
+   */
+  private onLikeClick(news: NewsItem) {
+    // 使用 MockDataService 同步点赞状态
+    const result = MockDataService.toggleNewsLike(news.id, news.likeCount);
+    
+    // 更新搜索结果列表中的对应新闻
+    const index = this.searchResults.findIndex(item => item.id === news.id);
+    if (index !== -1) {
+      const updatedNews: NewsItem = {
+        id: news.id,
+        title: news.title,
+        summary: news.summary,
+        content: news.content,
+        coverImages: news.coverImages,
+        category: news.category,
+        source: news.source,
+        author: news.author,
+        publishTime: news.publishTime,
+        readCount: news.readCount,
+        likeCount: result.likeCount,
+        commentCount: news.commentCount,
+        shareCount: news.shareCount,
+        collectCount: news.collectCount,
+        isLiked: result.isLiked,
+        isCollected: news.isCollected,
+        isRead: news.isRead,
+        type: news.type,
+        videoUrl: news.videoUrl
+      };
+      
+      this.searchResults[index] = updatedNews;
+      console.log(`SearchResultPage: 新闻点赞状态: ${result.isLiked ? '已点赞' : '取消点赞'}, 点赞数: ${result.likeCount}`);
+    }
+  }
+  
+  /**
+   * 评论新闻
+   */
+  private onCommentClick(news: NewsItem) {
+    // 跳转到新闻详情页
+    router.pushUrl({
+      url: 'pages/NewsDetailPage',
+      params: {
+        newsId: news.id,
+        newsItem: news
+      }
+    }).catch((error: Error) => {
+      console.error('跳转新闻详情失败:', error.message);
+    });
+  }
+  
+  /**
+   * 分享新闻
+   */
+  private onShareClick(news: NewsItem) {
+    // TODO: 显示分享菜单
+    console.log(`SearchResultPage: 点击分享: ${news.title}`);
+  }
+  
+  /**
+   * 收藏新闻
+   */
+  private onCollectClick(news: NewsItem) {
+    // 使用 MockDataService 同步收藏状态
+    const result = MockDataService.toggleNewsCollect(news.id, news.collectCount);
+    
+    // 更新收藏状态
+    const index = this.searchResults.findIndex(item => item.id === news.id);
+    if (index !== -1) {
+      const updatedNews: NewsItem = {
+        id: news.id,
+        title: news.title,
+        summary: news.summary,
+        content: news.content,
+        coverImages: news.coverImages,
+        category: news.category,
+        source: news.source,
+        author: news.author,
+        publishTime: news.publishTime,
+        readCount: news.readCount,
+        likeCount: news.likeCount,
+        commentCount: news.commentCount,
+        shareCount: news.shareCount,
+        collectCount: result.likeCount,
+        isLiked: news.isLiked,
+        isCollected: result.isLiked,
+        isRead: news.isRead,
+        type: news.type,
+        videoUrl: news.videoUrl
+      };
+      
+      this.searchResults[index] = updatedNews;
+      console.log(`SearchResultPage: 新闻收藏状态: ${result.isLiked ? '已收藏' : '取消收藏'}, 收藏数: ${result.likeCount}`);
+    }
   }
   
   // ==================== 辅助方法 ====================

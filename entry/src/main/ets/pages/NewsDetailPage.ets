@@ -259,8 +259,11 @@ struct NewsDetailPage {
 
             Text(this.formatCount(comment.likeCount))
               .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-              .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
+              .fontColor(comment.isLiked ? CommonConstants.COLORS.PRIMARY : CommonConstants.COLORS.TEXT_SECONDARY)
           }
+          .onClick(() => {
+            this.toggleCommentLike(comment);
+          })
 
           // 回复
           Row({ space: 4 }) {
@@ -283,13 +286,55 @@ struct NewsDetailPage {
   @Builder
   CommentInputBar() {
     Row({ space: CommonConstants.SPACING.MD }) {
+      // 点赞按钮
+      Row({ space: 4 }) {
+        Image(this.newsItem?.isLiked ? $r('app.media.ic_like_active') : $r('app.media.ic_like'))
+          .width(20)
+          .height(20)
+        
+        Text(this.formatCount(this.newsItem?.likeCount || 0))
+          .fontSize(CommonConstants.FONT_SIZE.CAPTION)
+          .fontColor(this.newsItem?.isLiked ? CommonConstants.COLORS.PRIMARY : CommonConstants.COLORS.TEXT_SECONDARY)
+      }
+      .onClick(() => {
+        this.toggleNewsLike();
+      })
+
+      // 评论按钮
+      Row({ space: 4 }) {
+        Image($r('app.media.ic_comment'))
+          .width(20)
+          .height(20)
+        
+        Text(this.formatCount(this.commentList.length))
+          .fontSize(CommonConstants.FONT_SIZE.CAPTION)
+          .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
+      }
+
+      // 分享按钮
+      Row({ space: 4 }) {
+        Image($r('app.media.ic_share'))
+          .width(20)
+          .height(20)
+        
+        Text(this.formatCount(this.newsItem?.shareCount || 0))
+          .fontSize(CommonConstants.FONT_SIZE.CAPTION)
+          .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
+      }
+      .onClick(() => {
+        this.onShare();
+      })
+
+      Blank()
+        .layoutWeight(1)
+
       // 评论输入框
       TextInput({ placeholder: '说点什么...', text: this.commentText })
-        .layoutWeight(1)
+        .width(180)
         .height(36)
         .backgroundColor(this.isNightMode ? '#FF2A2A2A' : '#FFF5F5F5')
         .borderRadius(18)
-        .fontSize(CommonConstants.FONT_SIZE.BODY)
+        .fontSize(CommonConstants.FONT_SIZE.CAPTION)
         .fontColor(this.isNightMode ? CommonConstants.COLORS.WHITE : CommonConstants.COLORS.TEXT_PRIMARY)
         .placeholderColor(CommonConstants.COLORS.TEXT_HINT)
         .padding({ left: CommonConstants.SPACING.MD, right: CommonConstants.SPACING.MD })
@@ -299,7 +344,7 @@ struct NewsDetailPage {
 
       // 发送按钮
       Button('发送')
-        .fontSize(CommonConstants.FONT_SIZE.BODY)
+        .fontSize(CommonConstants.FONT_SIZE.CAPTION)
         .fontColor(CommonConstants.COLORS.WHITE)
         .backgroundColor(this.commentText.trim().length > 0 ? CommonConstants.COLORS.PRIMARY : CommonConstants.COLORS.TEXT_HINT)
         .borderRadius(18)
@@ -413,8 +458,105 @@ struct NewsDetailPage {
       this.newsItem = foundNews;
     }
     
-    // 加载对应评论
-    this.commentList = MockDataService.getCommentList(this.newsId);
+    // 应用点赞状态
+    if (this.newsItem) {
+      const isLiked = MockDataService.getNewsLikeStatus(this.newsItem.id);
+      const news = this.newsItem;
+      this.newsItem = {
+        id: news.id,
+        title: news.title,
+        summary: news.summary,
+        content: news.content,
+        coverImages: news.coverImages,
+        category: news.category,
+        source: news.source,
+        author: news.author,
+        publishTime: news.publishTime,
+        readCount: news.readCount,
+        likeCount: news.likeCount,
+        commentCount: news.commentCount,
+        shareCount: news.shareCount,
+        collectCount: news.collectCount,
+        isLiked: isLiked,
+        isCollected: news.isCollected,
+        isRead: news.isRead,
+        type: news.type,
+        videoUrl: news.videoUrl
+      };
+    }
+    
+    // 加载对应评论（带状态）
+    this.commentList = MockDataService.getCommentsWithStatus(this.newsId);
+  }
+
+  /**
+   * 切换新闻点赞状态
+   */
+  private toggleNewsLike() {
+    if (!this.newsItem) return;
+    
+    const result = MockDataService.toggleNewsLike(this.newsItem.id, this.newsItem.likeCount);
+    const news = this.newsItem;
+    
+    // 更新新闻对象
+    this.newsItem = {
+      id: news.id,
+      title: news.title,
+      summary: news.summary,
+      content: news.content,
+      coverImages: news.coverImages,
+      category: news.category,
+      source: news.source,
+      author: news.author,
+      publishTime: news.publishTime,
+      readCount: news.readCount,
+      likeCount: result.likeCount,
+      commentCount: news.commentCount,
+      shareCount: news.shareCount,
+      collectCount: news.collectCount,
+      isLiked: result.isLiked,
+      isCollected: news.isCollected,
+      isRead: news.isRead,
+      type: news.type,
+      videoUrl: news.videoUrl
+    };
+    
+    // 通知封面页更新点赞状态
+    MockDataService.notifyNewsLikeChanged();
+    
+    console.log(`新闻点赞状态: ${result.isLiked ? '已点赞' : '取消点赞'}, 点赞数: ${result.likeCount}`);
+  }
+
+  /**
+   * 切换评论点赞状态
+   */
+  private toggleCommentLike(comment: Comment) {
+    const result = MockDataService.toggleCommentLike(comment.id, comment.likeCount);
+    
+    // 更新评论列表
+    const updatedList: Comment[] = [];
+    for (let i = 0; i < this.commentList.length; i++) {
+      const c = this.commentList[i];
+      if (c.id === comment.id) {
+        const updatedComment: Comment = {
+          id: c.id,
+          newsId: c.newsId,
+          author: c.author,
+          content: c.content,
+          publishTime: c.publishTime,
+          likeCount: result.likeCount,
+          replyCount: c.replyCount,
+          isLiked: result.isLiked,
+          replies: c.replies
+        };
+        updatedList.push(updatedComment);
+      } else {
+        updatedList.push(c);
+      }
+    }
+    this.commentList = updatedList;
+    
+    console.log(`评论点赞状态: ${result.isLiked ? '已点赞' : '取消点赞'}, 点赞数: ${result.likeCount}`);
   }
 
   private formatCount(count: number): string {
@@ -433,10 +575,50 @@ struct NewsDetailPage {
     console.log('分享新闻');
   }
 
+  /**
+   * 发送评论
+   */
   private sendComment() {
-    if (this.commentText.trim().length > 0) {
-      // TODO: 发送评论
-      console.log(`发送评论: ${this.commentText}`);
+    if (this.commentText.trim().length > 0 && this.newsItem) {
+      // 添加评论
+      const newComment = MockDataService.addComment(this.newsItem.id, this.commentText.trim());
+      
+      // 更新评论列表（将新评论添加到开头）
+      const updatedList: Comment[] = [newComment];
+      for (let i = 0; i < this.commentList.length; i++) {
+        updatedList.push(this.commentList[i]);
+      }
+      this.commentList = updatedList;
+      
+      // 更新新闻的评论数
+      if (this.newsItem) {
+        const news = this.newsItem;
+        this.newsItem = {
+          id: news.id,
+          title: news.title,
+          summary: news.summary,
+          content: news.content,
+          coverImages: news.coverImages,
+          category: news.category,
+          source: news.source,
+          author: news.author,
+          publishTime: news.publishTime,
+          readCount: news.readCount,
+          likeCount: news.likeCount,
+          commentCount: news.commentCount + 1,
+          shareCount: news.shareCount,
+          collectCount: news.collectCount,
+          isLiked: news.isLiked,
+          isCollected: news.isCollected,
+          isRead: news.isRead,
+          type: news.type,
+          videoUrl: news.videoUrl
+        };
+      }
+      
+      console.log(`发送评论成功: ${this.commentText}`);
+      
+      // 清空输入框
       this.commentText = '';
     }
   }

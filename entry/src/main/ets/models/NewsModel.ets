@@ -130,6 +130,14 @@ export interface Topic {
 }
 
 /**
+ * 点赞结果
+ */
+export interface LikeResult {
+  isLiked: boolean;              // 是否已点赞
+  likeCount: number;             // 点赞数
+}
+
+/**
  * 示例新闻数据
  */
 export const SAMPLE_NEWS: NewsItem[] = [

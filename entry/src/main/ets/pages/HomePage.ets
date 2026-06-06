@@ -18,8 +18,59 @@ export struct HomePage {
   @State isRefreshing: boolean = false;
   @State hasMore: boolean = true;
   
+  // 监听全局状态变化，当点赞状态改变时刷新列表
+  @StorageLink(MockDataService.STATE_VERSION_KEY) @Watch('onStateVersionChange') stateVersion: number = 0;
+  
   private scroller: Scroller = new Scroller();
   private categoryScroller: Scroller = new Scroller();
+  
+  // 监听状态版本变化，刷新列表
+  onStateVersionChange() {
+    console.log('HomePage: 检测到点赞状态变化，更新列表中的点赞状态');
+    this.updateNewsLikeStatus();
+  }
+  
+  /**
+   * 更新新闻列表中的点赞状态（精细更新）
+   * 只更新有变化的新闻，不重新加载整个列表
+   */
+  private updateNewsLikeStatus() {
+    // 遍历列表，更新每条新闻的点赞状态和收藏状态
+    for (let i = 0; i < this.newsList.length; i++) {
+      const news = this.newsList[i];
+      const savedIsLiked = MockDataService.newsLikeStatus.get(news.id);
+      const savedLikeCount = MockDataService.newsLikeCount.get(news.id);
+      const savedIsCollected = MockDataService.newsCollectStatus.get(news.id);
+      const savedCollectCount = MockDataService.newsCollectCount.get(news.id);
+      
+      // 如果该新闻有保存的点赞状态或收藏状态，则更新
+      if (savedIsLiked !== undefined || savedLikeCount !== undefined || 
+          savedIsCollected !== undefined || savedCollectCount !== undefined) {
+        const updatedNews: NewsItem = {
+          id: news.id,
+          title: news.title,
+          summary: news.summary,
+          content: news.content,
+          coverImages: news.coverImages,
+          category: news.category,
+          source: news.source,
+          author: news.author,
+          publishTime: news.publishTime,
+          readCount: news.readCount,
+          likeCount: savedLikeCount !== undefined ? savedLikeCount : news.likeCount,
+          commentCount: news.commentCount,
+          shareCount: news.shareCount,
+          collectCount: savedCollectCount !== undefined ? savedCollectCount : news.collectCount,
+          isLiked: savedIsLiked !== undefined ? savedIsLiked : news.isLiked,
+          isCollected: savedIsCollected !== undefined ? savedIsCollected : news.isCollected,
+          isRead: news.isRead,
+          type: news.type,
+          videoUrl: news.videoUrl
+        };
+        this.newsList[i] = updatedNews;
+      }
+    }
+  }
   
   aboutToAppear() {
     this.loadNewsList();
@@ -332,8 +383,34 @@ export struct HomePage {
   
   private onLikeClick(index: number) {
     const news = this.newsList[index];
-    news.isLiked = !news.isLiked;
-    news.likeCount += news.isLiked ? 1 : -1;
+    // 使用 MockDataService 同步点赞状态
+    const result = MockDataService.toggleNewsLike(news.id, news.likeCount);
+    
+    // 更新本地状态
+    const updatedNews: NewsItem = {
+      id: news.id,
+      title: news.title,
+      summary: news.summary,
+      content: news.content,
+      coverImages: news.coverImages,
+      category: news.category,
+      source: news.source,
+      author: news.author,
+      publishTime: news.publishTime,
+      readCount: news.readCount,
+      likeCount: result.likeCount,
+      commentCount: news.commentCount,
+      shareCount: news.shareCount,
+      collectCount: news.collectCount,
+      isLiked: result.isLiked,
+      isCollected: news.isCollected,
+      isRead: news.isRead,
+      type: news.type,
+      videoUrl: news.videoUrl
+    };
+    
+    this.newsList[index] = updatedNews;
+    console.log(`HomePage: 新闻点赞状态: ${result.isLiked ? '已点赞' : '取消点赞'}, 点赞数: ${result.likeCount}`);
   }
   
   private onCommentClick(news: NewsItem) {
@@ -348,7 +425,33 @@ export struct HomePage {
   
   private onCollectClick(index: number) {
     const news = this.newsList[index];
-    news.isCollected = !news.isCollected;
-    news.collectCount += news.isCollected ? 1 : -1;
+    // 使用 MockDataService 同步收藏状态
+    const result = MockDataService.toggleNewsCollect(news.id, news.collectCount);
+    
+    // 更新本地状态
+    const updatedNews: NewsItem = {
+      id: news.id,
+      title: news.title,
+      summary: news.summary,
+      content: news.content,
+      coverImages: news.coverImages,
+      category: news.category,
+      source: news.source,
+      author: news.author,
+      publishTime: news.publishTime,
+      readCount: news.readCount,
+      likeCount: news.likeCount,
+      commentCount: news.commentCount,
+      shareCount: news.shareCount,
+      collectCount: result.likeCount,
+      isLiked: news.isLiked,
+      isCollected: result.isLiked,
+      isRead: news.isRead,
+      type: news.type,
+      videoUrl: news.videoUrl
+    };
+    
+    this.newsList[index] = updatedNews;
+    console.log(`HomePage: 新闻收藏状态: ${result.isLiked ? '已收藏' : '取消收藏'}, 收藏数: ${result.likeCount}`);
   }
 }

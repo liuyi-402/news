@@ -1,5 +1,6 @@
 import http from '@ohos.net.http';
 import { NewsItem, NewsType, AuthorInfo } from '../models/NewsModel';
+import { MockDataService } from './MockDataService';
 
 /**
  * 网络新闻服务
@@ -387,9 +388,14 @@ export class NetworkNewsService {
       const templateIndex = (page - 1) * 5 + i;
       const title = templates[i % templates.length];
       const imageIndex = (page - 1) * 5 + i;
+      const newsId = `news_${categoryKey}_${page}_${i}`;
+      
+      // 获取已保存的点赞状态和点赞数
+      const savedIsLiked = MockDataService.getNewsLikeStatus(newsId);
+      const savedLikeCount = MockDataService.getNewsLikeCount(newsId);
       
       newsItems.push({
-        id: `news_${categoryKey}_${page}_${i}`,
+        id: newsId,
         title: title,
         summary: `${title}。这是新闻的详细摘要内容，包含了新闻的核心信息和背景介绍。`,
         content: `${title}。\n\n这是新闻的详细内容。根据最新消息，相关方面已经采取了一系列措施，确保各项工作顺利推进。\n\n专家表示，这一发展对于推动行业进步具有重要意义，将为经济社会发展注入新的动力。\n\n未来，相关部门将继续加大工作力度，推动各项政策落地见效，为人民群众带来更多实惠。`,
@@ -405,11 +411,11 @@ export class NetworkNewsService {
         },
         publishTime: `${Math.floor(Math.random() * 12) + 1}小时前`,
         readCount: Math.floor(Math.random() * 50000) + 10000,
-        likeCount: Math.floor(Math.random() * 5000) + 1000,
+        likeCount: savedLikeCount !== undefined ? savedLikeCount : Math.floor(Math.random() * 5000) + 1000,
         commentCount: Math.floor(Math.random() * 500) + 100,
         shareCount: Math.floor(Math.random() * 200) + 50,
         collectCount: Math.floor(Math.random() * 100) + 20,
-        isLiked: false,
+        isLiked: savedIsLiked,
         isCollected: false,
         isRead: false,
         type: NewsType.SINGLE_IMAGE
