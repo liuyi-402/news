@@ -1,6 +1,23 @@
 import { NewsItem, NewsType, AuthorInfo, HotSearch, Topic, Message, MessageType, Comment, UserInfo, LikeResult } from '../models/NewsModel';
 
 /**
+ * 评论排序类型
+ */
+export enum CommentSortType {
+  HOT = 'hot',     // 热门排序（按点赞数）
+  NEW = 'new'      // 最新排序（按时间）
+}
+
+/**
+ * 分页评论结果
+ */
+export interface PaginatedComments {
+  comments: Comment[];      // 评论列表
+  total: number;            // 总评论数
+  hasMore: boolean;         // 是否还有更多
+}
+
+/**
  * Mock数据服务
  */
 export class MockDataService {
@@ -11,9 +28,13 @@ export class MockDataService {
   // 用于保存收藏状态
   public static newsCollectStatus: Map<string, boolean> = new Map();
   public static newsCollectCount: Map<string, number> = new Map();
+  // 用于保存新闻评论数（用于封面页和详情页同步）
+  public static newsCommentCount: Map<string, number> = new Map();
   private static commentLikeStatus: Map<string, boolean> = new Map();
   private static commentLikeCount: Map<string, number> = new Map();
   private static commentsData: Map<string, Comment[]> = new Map();
+  // 评论总数缓存
+  private static commentTotalCount: Map<string, number> = new Map();
   
   // 全局状态版本号，用于通知页面刷新
   private static stateVersion: number = 0;
@@ -40,6 +61,16 @@ export class MockDataService {
   }
   
   /**
+   * 通知新闻评论数变化
+   * 用于通知封面页更新特定新闻的评论数
+   */
+  static notifyNewsCommentChanged() {
+    MockDataService.stateVersion++;
+    AppStorage.set<number>(MockDataService.STATE_VERSION_KEY, MockDataService.stateVersion);
+    console.log(`MockDataService: 通知评论数变化，版本号: ${MockDataService.stateVersion}`);
+  }
+  
+  /**
    * 生成Mock新闻列表
    */
   static getNewsList(category?: string, page: number = 1): NewsItem[] {
@@ -59,6 +90,26 @@ export class MockDataService {
       // 获取已保存的收藏状态和收藏数
       const savedIsCollected = MockDataService.newsCollectStatus.get(newsId) || false;
       const savedCollectCount = MockDataService.newsCollectCount.get(newsId);
+      // 获取已保存的评论数（确保封面页和详情页一致）
+      const savedCommentCount = MockDataService.newsCommentCount.get(newsId);
+      console.log(`MockDataService: 新闻 ${newsId}, 缓存的评论数: ${savedCommentCount}`);
+
+      // 如果没有缓存的评论数，则初始化评论数据并缓存
+      let commentCount = savedCommentCount;
+      if (commentCount === undefined) {
+        // 初始化该新闻的评论数据
+        const comments = MockDataService.getCommentList(newsId);
+        MockDataService.commentsData.set(newsId, comments);
+        commentCount = comments.length;
+        // 缓存评论数
+        MockDataService.newsCommentCount.set(newsId, commentCount);
+        MockDataService.commentTotalCount.set(newsId, commentCount);
+        console.log(`MockDataService: 初始化新闻 ${newsId} 的评论数据，评论数: ${commentCount}`);
+      } else {
+        console.log(`MockDataService: 使用缓存的评论数 ${newsId}: ${commentCount}`);
+      }
+
+      console.log(`MockDataService: 最终新闻 ${newsId} 的评论数: ${commentCount}`);
 
       newsList.push({
         id: newsId,
@@ -72,7 +123,7 @@ export class MockDataService {
         publishTime: MockDataService.getMockTime(index),
         readCount: Math.floor(Math.random() * 100000),
         likeCount: savedLikeCount !== undefined ? savedLikeCount : Math.floor(Math.random() * 10000),
-        commentCount: Math.floor(Math.random() * 1000),
+        commentCount: commentCount,
         shareCount: Math.floor(Math.random() * 500),
         collectCount: savedCollectCount !== undefined ? savedCollectCount : Math.floor(Math.random() * 300),
         isLiked: savedIsLiked,
@@ -433,7 +484,65 @@ export class MockDataService {
     // 将新评论添加到列表开头
     comments.unshift(newComment);
     
+    // 更新评论总数缓存
+    const totalCount = comments.length;
+    MockDataService.commentTotalCount.set(newsId, totalCount);
+    MockDataService.newsCommentCount.set(newsId, totalCount);
+    
+    // 通知封面页更新评论数
+    MockDataService.notifyNewsCommentChanged();
+    
     return newComment;
+  }
+
+  /**
+   * 添加回复
+   * @param newsId 新闻ID
+   * @param commentId 评论ID
+   * @param content 回复内容
+   * @returns 新回复
+   */
+  static addReply(newsId: string, commentId: string, content: string): Comment {
+    // 创建新回复
+    const newReply: Comment = {
+      id: `reply_${Date.now()}`,
+      newsId: newsId,
+      author: {
+        id: 'user_001',
+        name: '测试用户',
+        avatar: 'https://picsum.photos/200/200?random=301',
+        isVerified: true
+      },
+      content: content,
+      publishTime: '刚刚',
+      likeCount: 0,
+      replyCount: 0,
+      isLiked: false,
+      replies: []
+    };
+    
+    // 获取评论列表
+    let comments = MockDataService.commentsData.get(newsId);
+    if (!comments) {
+      comments = MockDataService.getCommentList(newsId);
+      MockDataService.commentsData.set(newsId, comments);
+    }
+    
+    // 找到对应评论并添加回复
+    const commentIndex = comments.findIndex(c => c.id === commentId);
+    if (commentIndex !== -1) {
+      const comment = comments[commentIndex];
+      if (!comment.replies) {
+        comment.replies = [];
+      }
+      comment.replies.push(newReply);
+      comment.replyCount = (comment.replyCount || 0) + 1;
+      
+      // 更新评论数据
+      MockDataService.commentsData.set(newsId, comments);
+    }
+    
+    return newReply;
   }
 
   /**
@@ -472,7 +581,116 @@ export class MockDataService {
       result.push(updatedComment);
     }
     
+    // 排序：新评论优先，然后按点赞数排序
+    result.sort((a, b) => {
+      // 新评论优先
+      if (a.publishTime === '刚刚' && b.publishTime !== '刚刚') return -1;
+      if (b.publishTime === '刚刚' && a.publishTime !== '刚刚') return 1;
+      // 其他按点赞数排序
+      return b.likeCount - a.likeCount;
+    });
+    
     return result;
+  }
+
+  /**
+   * 获取分页评论列表（支持排序）
+   * @param newsId 新闻ID
+   * @param page 页码
+   * @param pageSize 每页数量
+   * @param sortType 排序类型
+   * @returns 分页评论结果
+   */
+  static getCommentsPaginated(
+    newsId: string,
+    page: number = 1,
+    pageSize: number = 10,
+    sortType: CommentSortType = CommentSortType.HOT
+  ): PaginatedComments {
+    // 检查是否有保存的评论数据
+    let comments = MockDataService.commentsData.get(newsId);
+    if (!comments) {
+      // 如果没有，生成新的评论数据
+      comments = MockDataService.getCommentList(newsId);
+      MockDataService.commentsData.set(newsId, comments);
+    }
+
+    // 应用点赞状态
+    const allComments: Comment[] = [];
+    for (let i = 0; i < comments.length; i++) {
+      const comment = comments[i];
+      const isLiked = MockDataService.commentLikeStatus.get(comment.id) || false;
+      const likeCount = MockDataService.commentLikeCount.get(comment.id);
+      
+      const updatedComment: Comment = {
+        id: comment.id,
+        newsId: comment.newsId,
+        author: comment.author,
+        content: comment.content,
+        publishTime: comment.publishTime,
+        likeCount: likeCount !== undefined ? likeCount : comment.likeCount,
+        replyCount: comment.replyCount,
+        isLiked: isLiked,
+        replies: comment.replies
+      };
+      
+      allComments.push(updatedComment);
+    }
+
+    // 排序
+    if (sortType === CommentSortType.HOT) {
+      // 热门排序：按点赞数降序，但新评论（"刚刚"）优先
+      allComments.sort((a, b) => {
+        // 新评论优先
+        if (a.publishTime === '刚刚' && b.publishTime !== '刚刚') return -1;
+        if (b.publishTime === '刚刚' && a.publishTime !== '刚刚') return 1;
+        // 其他按点赞数排序
+        return b.likeCount - a.likeCount;
+      });
+    } else {
+      // 最新排序：按时间降序（这里简化处理，实际应该按时间戳排序）
+      allComments.sort((a, b) => {
+        // 将时间转换为可比较的值
+        const getTimeValue = (time: string): number => {
+          if (time === '刚刚') return -1; // 新评论排在最前面
+          if (time.includes('分钟前')) return parseInt(time);
+          if (time.includes('小时前')) return parseInt(time) * 60 + 10000;
+          return 999999; // 其他情况
+        };
+        return getTimeValue(a.publishTime) - getTimeValue(b.publishTime);
+      });
+    }
+
+    // 分页
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedComments = allComments.slice(startIndex, endIndex);
+    const totalCount = allComments.length;
+    const hasMore = endIndex < totalCount;
+
+    // 更新总数缓存
+    MockDataService.commentTotalCount.set(newsId, totalCount);
+
+    return {
+      comments: paginatedComments,
+      total: totalCount,
+      hasMore: hasMore
+    };
+  }
+
+  /**
+   * 获取评论总数
+   * @param newsId 新闻ID
+   * @returns 评论总数
+   */
+  static getCommentTotalCount(newsId: string): number {
+    const cached = MockDataService.commentTotalCount.get(newsId);
+    if (cached !== undefined) {
+      return cached;
+    }
+    
+    const comments = MockDataService.commentsData.get(newsId);
+    return comments ? comments.length : 0;
   }
 
   /**
@@ -717,5 +935,28 @@ export class MockDataService {
   private static getRandomMessageType(): MessageType {
     const types = [MessageType.COMMENT, MessageType.LIKE, MessageType.SYSTEM, MessageType.FOLLOW];
     return types[Math.floor(Math.random() * types.length)];
+  }
+
+  /**
+   * 初始化新闻的评论数据（供外部调用）
+   * @param newsId 新闻ID
+   * @returns 评论数
+   */
+  static initializeCommentData(newsId: string): number {
+    const savedCommentCount = MockDataService.newsCommentCount.get(newsId);
+    if (savedCommentCount !== undefined) {
+      return savedCommentCount;
+    }
+
+    // 初始化该新闻的评论数据
+    const comments = MockDataService.getCommentList(newsId);
+    MockDataService.commentsData.set(newsId, comments);
+    const commentCount = comments.length;
+    // 缓存评论数
+    MockDataService.newsCommentCount.set(newsId, commentCount);
+    MockDataService.commentTotalCount.set(newsId, commentCount);
+    console.log(`MockDataService: 初始化新闻 ${newsId} 的评论数据，评论数: ${commentCount}`);
+    
+    return commentCount;
   }
 }

@@ -45,7 +45,7 @@ export enum NewsType {
 }
 
 /**
- * 评论模型
+ * 评论模型（接口，用于数据传输）
  */
 export interface Comment {
   id: string;                    // 评论ID
@@ -57,6 +57,49 @@ export interface Comment {
   replyCount: number;            // 回复数
   isLiked: boolean;              // 是否已点赞
   replies?: Comment[];           // 回复列表
+}
+
+/**
+ * 评论类（支持响应式更新）
+ */
+@Observed
+export class CommentClass {
+  id: string = '';
+  newsId: string = '';
+  author: AuthorInfo = { id: '', name: '', avatar: '', isVerified: false };
+  content: string = '';
+  publishTime: string = '';
+  likeCount: number = 0;
+  replyCount: number = 0;
+  isLiked: boolean = false;
+  replies: CommentClass[] = [];
+
+  constructor(comment: Comment) {
+    this.id = comment.id;
+    this.newsId = comment.newsId;
+    this.author = comment.author;
+    this.content = comment.content;
+    this.publishTime = comment.publishTime;
+    this.likeCount = comment.likeCount;
+    this.replyCount = comment.replyCount;
+    this.isLiked = comment.isLiked;
+    this.replies = comment.replies ? comment.replies.map(r => new CommentClass(r)) : [];
+  }
+
+  // 转換為接口
+  toInterface(): Comment {
+    return {
+      id: this.id,
+      newsId: this.newsId,
+      author: this.author,
+      content: this.content,
+      publishTime: this.publishTime,
+      likeCount: this.likeCount,
+      replyCount: this.replyCount,
+      isLiked: this.isLiked,
+      replies: this.replies.map(r => r.toInterface())
+    };
+  }
 }
 
 /**

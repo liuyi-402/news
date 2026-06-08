@@ -1,6 +1,7 @@
 import { NewsItem, Comment } from '../models/NewsModel';
 import { MockDataService } from '../services/MockDataService';
 import { CommonConstants } from '../common/CommonConstants';
+import { CommentSection } from '../components/CommentSection';
 import router from '@ohos.router';
 
 /**
@@ -13,6 +14,7 @@ struct NewsDetailPage {
   @Prop newsId: string = '';
   @State newsItem: NewsItem | null = null;
   @State commentList: Comment[] = [];
+  @State totalCommentCount: number = 0;
   @State commentText: string = '';
   @State fontSize: number = CommonConstants.FONT_SIZE.BODY;
   @State isNightMode: boolean = false;
@@ -174,192 +176,88 @@ struct NewsDetailPage {
 
   @Builder
   CommentSection() {
-    Column({ space: CommonConstants.SPACING.MD }) {
-      // 评论标题
-      Row({ space: CommonConstants.SPACING.SM }) {
-        Text('评论')
-          .fontSize(CommonConstants.FONT_SIZE.SUBTITLE)
-          .fontColor(this.isNightMode ? CommonConstants.COLORS.WHITE : CommonConstants.COLORS.TEXT_PRIMARY)
-          .fontWeight(FontWeight.Bold)
-
-        Text(`(${this.commentList.length})`)
-          .fontSize(CommonConstants.FONT_SIZE.BODY)
-          .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
+    CommentSection({
+      newsId: this.newsItem?.id || this.newsId,
+      commentList: $commentList,
+      totalCommentCount: $totalCommentCount,
+      isNightMode: this.isNightMode,
+      onCommentCountChange: (count: number) => {
+        this.onCommentCountChange(count);
       }
-      .width('100%')
-
-      // 评论列表
-      if (this.commentList.length > 0) {
-        Column({ space: CommonConstants.SPACING.LG }) {
-          ForEach(this.commentList, (comment: Comment) => {
-            this.CommentItem(comment)
-          })
-        }
-        .width('100%')
-      } else {
-        // 暂无评论
-        Column() {
-          Image($r('app.media.ic_empty_comment'))
-            .width(80)
-            .height(80)
-            .opacity(0.5)
-
-          Text('暂无评论，快来抢沙发吧~')
-            .fontSize(CommonConstants.FONT_SIZE.BODY)
-            .fontColor(CommonConstants.COLORS.TEXT_HINT)
-            .margin({ top: CommonConstants.SPACING.MD })
-        }
-        .width('100%')
-        .height(150)
-        .justifyContent(FlexAlign.Center)
-      }
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  CommentItem(comment: Comment) {
-    Row({ space: CommonConstants.SPACING.MD }) {
-      // 评论者头像
-      Image(comment.author.avatar)
-        .width(40)
-        .height(40)
-        .borderRadius(20)
-        .objectFit(ImageFit.Cover)
-
-      Column({ space: CommonConstants.SPACING.SM }) {
-        // 评论者昵称和时间
-        Row({ space: 8 }) {
-          Text(comment.author.name)
-            .fontSize(CommonConstants.FONT_SIZE.BODY)
-            .fontColor(this.isNightMode ? CommonConstants.COLORS.WHITE : CommonConstants.COLORS.TEXT_PRIMARY)
-            .fontWeight(FontWeight.Medium)
-            .layoutWeight(1)
-
-          Text(comment.publishTime)
-            .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-            .fontColor(CommonConstants.COLORS.TEXT_HINT)
-        }
-        .width('100%')
-
-        // 评论内容
-        Text(comment.content)
-          .fontSize(CommonConstants.FONT_SIZE.BODY)
-          .fontColor(this.isNightMode ? '#FFE0E0E0' : CommonConstants.COLORS.TEXT_SECONDARY)
-          .lineHeight(20)
-
-        // 互动按钮
-        Row({ space: CommonConstants.SPACING.XL }) {
-          // 点赞
-          Row({ space: 4 }) {
-            Image(comment.isLiked ? $r('app.media.ic_like_active') : $r('app.media.ic_like'))
-              .width(16)
-              .height(16)
-
-            Text(this.formatCount(comment.likeCount))
-              .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-              .fontColor(comment.isLiked ? CommonConstants.COLORS.PRIMARY : CommonConstants.COLORS.TEXT_SECONDARY)
-          }
-          .onClick(() => {
-            this.toggleCommentLike(comment);
-          })
-
-          // 回复
-          Row({ space: 4 }) {
-            Image($r('app.media.ic_comment'))
-              .width(16)
-              .height(16)
-
-            Text(this.formatCount(comment.replyCount))
-              .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-              .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
-          }
-        }
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-    }
-    .width('100%')
+    })
   }
 
   @Builder
   CommentInputBar() {
-    Row({ space: CommonConstants.SPACING.MD }) {
-      // 点赞按钮
-      Row({ space: 4 }) {
-        Image(this.newsItem?.isLiked ? $r('app.media.ic_like_active') : $r('app.media.ic_like'))
-          .width(20)
-          .height(20)
-        
-        Text(this.formatCount(this.newsItem?.likeCount || 0))
-          .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-          .fontColor(this.newsItem?.isLiked ? CommonConstants.COLORS.PRIMARY : CommonConstants.COLORS.TEXT_SECONDARY)
-      }
-      .onClick(() => {
-        this.toggleNewsLike();
-      })
-
-      // 评论按钮
-      Row({ space: 4 }) {
-        Image($r('app.media.ic_comment'))
-          .width(20)
-          .height(20)
-        
-        Text(this.formatCount(this.commentList.length))
-          .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-          .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
-      }
-
-      // 分享按钮
-      Row({ space: 4 }) {
-        Image($r('app.media.ic_share'))
-          .width(20)
-          .height(20)
-        
-        Text(this.formatCount(this.newsItem?.shareCount || 0))
-          .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-          .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
-      }
-      .onClick(() => {
-        this.onShare();
-      })
-
-      Blank()
-        .layoutWeight(1)
-
-      // 评论输入框
-      TextInput({ placeholder: '说点什么...', text: this.commentText })
-        .width(180)
-        .height(36)
-        .backgroundColor(this.isNightMode ? '#FF2A2A2A' : '#FFF5F5F5')
-        .borderRadius(18)
-        .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-        .fontColor(this.isNightMode ? CommonConstants.COLORS.WHITE : CommonConstants.COLORS.TEXT_PRIMARY)
-        .placeholderColor(CommonConstants.COLORS.TEXT_HINT)
-        .padding({ left: CommonConstants.SPACING.MD, right: CommonConstants.SPACING.MD })
-        .onChange((value: string) => {
-          this.commentText = value;
-        })
-
-      // 发送按钮
-      Button('发送')
-        .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-        .fontColor(CommonConstants.COLORS.WHITE)
-        .backgroundColor(this.commentText.trim().length > 0 ? CommonConstants.COLORS.PRIMARY : CommonConstants.COLORS.TEXT_HINT)
-        .borderRadius(18)
-        .height(36)
-        .padding({ left: 16, right: 16 })
-        .enabled(this.commentText.trim().length > 0)
+    Column() {
+      Divider()
+        .color(CommonConstants.COLORS.DIVIDER)
+      
+      Row({ space: 12 }) {
+        // 点赞按钮
+        Column({ space: 2 }) {
+          Image(this.newsItem?.isLiked ? $r('app.media.ic_like_active') : $r('app.media.ic_like'))
+            .width(22)
+            .height(22)
+          
+          Text(this.formatCount(this.newsItem?.likeCount || 0))
+            .fontSize(10)
+            .fontColor(this.newsItem?.isLiked ? CommonConstants.COLORS.PRIMARY : CommonConstants.COLORS.TEXT_SECONDARY)
+        }
         .onClick(() => {
-          this.sendComment();
+          this.toggleNewsLike();
         })
+
+        // 评论按钮
+        Column({ space: 2 }) {
+          Image($r('app.media.ic_comment'))
+            .width(22)
+            .height(22)
+          
+          Text(this.formatCount(this.totalCommentCount))
+            .fontSize(10)
+            .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
+        }
+
+        Blank()
+          .layoutWeight(1)
+
+        // 评论输入框
+        Row({ space: 8 }) {
+          TextInput({ placeholder: '说点什么...', text: this.commentText })
+            .width(200)
+            .height(36)
+            .backgroundColor(this.isNightMode ? '#FF3A3A3A' : '#FFF5F5F5')
+            .borderRadius(18)
+            .fontSize(14)
+            .fontColor(this.isNightMode ? CommonConstants.COLORS.WHITE : CommonConstants.COLORS.TEXT_PRIMARY)
+            .placeholderColor(CommonConstants.COLORS.TEXT_HINT)
+            .placeholderFont({ size: 14 })
+            .padding({ left: 16, right: 16 })
+            .onChange((value: string) => {
+              this.commentText = value;
+            })
+
+          // 发送按钮
+          Button('发送')
+            .fontSize(14)
+            .fontColor(CommonConstants.COLORS.WHITE)
+            .height(36)
+            .borderRadius(18)
+            .backgroundColor(this.commentText.trim().length > 0 ? CommonConstants.COLORS.PRIMARY : CommonConstants.COLORS.TEXT_HINT)
+            .enabled(this.commentText.trim().length > 0)
+            .padding({ left: 20, right: 20 })
+            .onClick(() => {
+              this.sendComment();
+            })
+        }
+      }
+      .width('100%')
+      .height(60)
+      .padding({ left: 16, right: 16 })
     }
     .width('100%')
-    .height(56)
-    .padding({ left: CommonConstants.SPACING.LG, right: CommonConstants.SPACING.LG })
     .backgroundColor(this.isNightMode ? '#FF2A2A2A' : CommonConstants.COLORS.WHITE)
-    .border({ width: { top: 0.5 }, color: { top: CommonConstants.COLORS.DIVIDER } })
   }
 
   @Builder
@@ -458,9 +356,13 @@ struct NewsDetailPage {
       this.newsItem = foundNews;
     }
     
-    // 应用点赞状态
+    // 应用点赞状态和实际评论数
     if (this.newsItem) {
       const isLiked = MockDataService.getNewsLikeStatus(this.newsItem.id);
+      const isCollected = MockDataService.getNewsCollectStatus(this.newsItem.id);
+      // 获取实际的评论数（确保与详情页评论列表一致）
+      const actualCommentCount = MockDataService.getCommentTotalCount(this.newsItem.id);
+      console.log(`NewsDetailPage: 新闻ID ${this.newsItem.id}, 传递的评论数 ${this.newsItem.commentCount}, 实际评论数 ${actualCommentCount}`);
       const news = this.newsItem;
       this.newsItem = {
         id: news.id,
@@ -474,11 +376,11 @@ struct NewsDetailPage {
         publishTime: news.publishTime,
         readCount: news.readCount,
         likeCount: news.likeCount,
-        commentCount: news.commentCount,
+        commentCount: actualCommentCount, // 使用实际评论数
         shareCount: news.shareCount,
         collectCount: news.collectCount,
         isLiked: isLiked,
-        isCollected: news.isCollected,
+        isCollected: isCollected,
         isRead: news.isRead,
         type: news.type,
         videoUrl: news.videoUrl
@@ -486,7 +388,13 @@ struct NewsDetailPage {
     }
     
     // 加载对应评论（带状态）
-    this.commentList = MockDataService.getCommentsWithStatus(this.newsId);
+    if (this.newsItem) {
+      this.commentList = MockDataService.getCommentsWithStatus(this.newsItem.id);
+      this.totalCommentCount = MockDataService.getCommentTotalCount(this.newsItem.id);
+      // 更新评论数缓存，确保封面页和详情页一致
+      MockDataService.newsCommentCount.set(this.newsItem.id, this.totalCommentCount);
+      console.log(`NewsDetailPage: 加载评论 ${this.newsItem.id}, 评论数: ${this.commentList.length}`);
+    }
   }
 
   /**
@@ -527,38 +435,6 @@ struct NewsDetailPage {
     console.log(`新闻点赞状态: ${result.isLiked ? '已点赞' : '取消点赞'}, 点赞数: ${result.likeCount}`);
   }
 
-  /**
-   * 切换评论点赞状态
-   */
-  private toggleCommentLike(comment: Comment) {
-    const result = MockDataService.toggleCommentLike(comment.id, comment.likeCount);
-    
-    // 更新评论列表
-    const updatedList: Comment[] = [];
-    for (let i = 0; i < this.commentList.length; i++) {
-      const c = this.commentList[i];
-      if (c.id === comment.id) {
-        const updatedComment: Comment = {
-          id: c.id,
-          newsId: c.newsId,
-          author: c.author,
-          content: c.content,
-          publishTime: c.publishTime,
-          likeCount: result.likeCount,
-          replyCount: c.replyCount,
-          isLiked: result.isLiked,
-          replies: c.replies
-        };
-        updatedList.push(updatedComment);
-      } else {
-        updatedList.push(c);
-      }
-    }
-    this.commentList = updatedList;
-    
-    console.log(`评论点赞状态: ${result.isLiked ? '已点赞' : '取消点赞'}, 点赞数: ${result.likeCount}`);
-  }
-
   private formatCount(count: number): string {
     if (count >= 10000) {
       return `${(count / 10000).toFixed(1)}万`;
@@ -576,19 +452,47 @@ struct NewsDetailPage {
   }
 
   /**
+   * 评论数量变化回调
+   */
+  private onCommentCountChange(count: number) {
+    // 更新新闻的评论数
+    if (this.newsItem) {
+      const news = this.newsItem;
+      this.newsItem = {
+        id: news.id,
+        title: news.title,
+        summary: news.summary,
+        content: news.content,
+        coverImages: news.coverImages,
+        category: news.category,
+        source: news.source,
+        author: news.author,
+        publishTime: news.publishTime,
+        readCount: news.readCount,
+        likeCount: news.likeCount,
+        commentCount: count,
+        shareCount: news.shareCount,
+        collectCount: news.collectCount,
+        isLiked: news.isLiked,
+        isCollected: news.isCollected,
+        isRead: news.isRead,
+        type: news.type,
+        videoUrl: news.videoUrl
+      };
+    }
+  }
+
+  /**
    * 发送评论
    */
   private sendComment() {
     if (this.commentText.trim().length > 0 && this.newsItem) {
-      // 添加评论
+      // 添加评论到数据服务
       const newComment = MockDataService.addComment(this.newsItem.id, this.commentText.trim());
       
-      // 更新评论列表（将新评论添加到开头）
-      const updatedList: Comment[] = [newComment];
-      for (let i = 0; i < this.commentList.length; i++) {
-        updatedList.push(this.commentList[i]);
-      }
-      this.commentList = updatedList;
+      // 重新加载评论列表
+      this.commentList = MockDataService.getCommentsWithStatus(this.newsItem.id);
+      this.totalCommentCount = MockDataService.getCommentTotalCount(this.newsItem.id);
       
       // 更新新闻的评论数
       if (this.newsItem) {
@@ -605,7 +509,7 @@ struct NewsDetailPage {
           publishTime: news.publishTime,
           readCount: news.readCount,
           likeCount: news.likeCount,
-          commentCount: news.commentCount + 1,
+          commentCount: this.totalCommentCount,
           shareCount: news.shareCount,
           collectCount: news.collectCount,
           isLiked: news.isLiked,

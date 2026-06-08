@@ -28,24 +28,25 @@ struct SearchResultPage {
   // 监听状态版本变化，刷新搜索结果
   onStateVersionChange() {
     if (this.isSearching && this.searchResults.length > 0) {
-      console.log('SearchResultPage: 检测到点赞状态变化，更新搜索结果中的点赞状态');
+      console.log('SearchResultPage: 检测到状态变化，更新搜索结果中的状态');
       this.updateSearchResultsLikeStatus();
     }
   }
   
   /**
-   * 更新搜索结果中的点赞状态（精细更新）
+   * 更新搜索结果中的点赞状态和评论数（精细更新）
    * 只更新有变化的新闻，不重新加载整个列表
    */
   private updateSearchResultsLikeStatus() {
-    // 遍历列表，更新每条新闻的点赞状态
+    // 遍历列表，更新每条新闻的点赞状态和评论数
     for (let i = 0; i < this.searchResults.length; i++) {
       const news = this.searchResults[i];
       const savedIsLiked = MockDataService.newsLikeStatus.get(news.id);
       const savedLikeCount = MockDataService.newsLikeCount.get(news.id);
+      const savedCommentCount = MockDataService.newsCommentCount.get(news.id);
       
-      // 如果该新闻有保存的点赞状态，则更新
-      if (savedIsLiked !== undefined || savedLikeCount !== undefined) {
+      // 如果该新闻有保存的状态，则更新
+      if (savedIsLiked !== undefined || savedLikeCount !== undefined || savedCommentCount !== undefined) {
         const updatedNews: NewsItem = {
           id: news.id,
           title: news.title,
@@ -58,7 +59,7 @@ struct SearchResultPage {
           publishTime: news.publishTime,
           readCount: news.readCount,
           likeCount: savedLikeCount !== undefined ? savedLikeCount : news.likeCount,
-          commentCount: news.commentCount,
+          commentCount: savedCommentCount !== undefined ? savedCommentCount : news.commentCount,
           shareCount: news.shareCount,
           collectCount: news.collectCount,
           isLiked: savedIsLiked !== undefined ? savedIsLiked : news.isLiked,

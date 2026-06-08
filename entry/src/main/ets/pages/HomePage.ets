@@ -26,26 +26,28 @@ export struct HomePage {
   
   // 监听状态版本变化，刷新列表
   onStateVersionChange() {
-    console.log('HomePage: 检测到点赞状态变化，更新列表中的点赞状态');
+    console.log('HomePage: 检测到状态变化，更新列表中的状态');
     this.updateNewsLikeStatus();
   }
   
   /**
-   * 更新新闻列表中的点赞状态（精细更新）
+   * 更新新闻列表中的点赞状态、收藏状态和评论数（精细更新）
    * 只更新有变化的新闻，不重新加载整个列表
    */
   private updateNewsLikeStatus() {
-    // 遍历列表，更新每条新闻的点赞状态和收藏状态
+    // 遍历列表，更新每条新闻的点赞状态、收藏状态和评论数
     for (let i = 0; i < this.newsList.length; i++) {
       const news = this.newsList[i];
       const savedIsLiked = MockDataService.newsLikeStatus.get(news.id);
       const savedLikeCount = MockDataService.newsLikeCount.get(news.id);
       const savedIsCollected = MockDataService.newsCollectStatus.get(news.id);
       const savedCollectCount = MockDataService.newsCollectCount.get(news.id);
+      const savedCommentCount = MockDataService.newsCommentCount.get(news.id);
       
-      // 如果该新闻有保存的点赞状态或收藏状态，则更新
+      // 如果该新闻有保存的状态，则更新
       if (savedIsLiked !== undefined || savedLikeCount !== undefined || 
-          savedIsCollected !== undefined || savedCollectCount !== undefined) {
+          savedIsCollected !== undefined || savedCollectCount !== undefined ||
+          savedCommentCount !== undefined) {
         const updatedNews: NewsItem = {
           id: news.id,
           title: news.title,
@@ -58,7 +60,7 @@ export struct HomePage {
           publishTime: news.publishTime,
           readCount: news.readCount,
           likeCount: savedLikeCount !== undefined ? savedLikeCount : news.likeCount,
-          commentCount: news.commentCount,
+          commentCount: savedCommentCount !== undefined ? savedCommentCount : news.commentCount,
           shareCount: news.shareCount,
           collectCount: savedCollectCount !== undefined ? savedCollectCount : news.collectCount,
           isLiked: savedIsLiked !== undefined ? savedIsLiked : news.isLiked,

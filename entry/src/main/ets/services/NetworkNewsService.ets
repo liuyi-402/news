@@ -194,7 +194,7 @@ export class NetworkNewsService {
             publishTime: NetworkNewsService.formatPublishTime(publishedAt),
             readCount: Math.floor(Math.random() * 10000),
             likeCount: Math.floor(Math.random() * 1000),
-            commentCount: Math.floor(Math.random() * 100),
+            commentCount: 10, // 使用固定评论数，与详情页一致
             shareCount: Math.floor(Math.random() * 50),
             collectCount: Math.floor(Math.random() * 30),
             isLiked: false,
@@ -238,7 +238,7 @@ export class NetworkNewsService {
       publishTime: NetworkNewsService.formatPublishTime(article.publishedAt),
       readCount: Math.floor(Math.random() * 10000),
       likeCount: Math.floor(Math.random() * 1000),
-      commentCount: Math.floor(Math.random() * 100),
+      commentCount: 10, // 使用固定评论数，与详情页一致
       shareCount: Math.floor(Math.random() * 50),
       collectCount: Math.floor(Math.random() * 30),
       isLiked: false,
@@ -282,7 +282,14 @@ export class NetworkNewsService {
   static async getNews(category?: string, page: number = 1): Promise<NewsItem[]> {
     // 直接使用可靠的新闻数据 + 真实图片
     console.log('NetworkNewsService: 生成新闻数据（使用真实图片）');
-    return NetworkNewsService.generateNewsWithRealImages(category, page);
+    const newsItems = NetworkNewsService.generateNewsWithRealImages(category, page);
+    
+    // 为每个新闻初始化评论数据
+    for (const news of newsItems) {
+      MockDataService.initializeCommentData(news.id);
+    }
+    
+    return newsItems;
   }
   
   /**
@@ -412,7 +419,7 @@ export class NetworkNewsService {
         publishTime: `${Math.floor(Math.random() * 12) + 1}小时前`,
         readCount: Math.floor(Math.random() * 50000) + 10000,
         likeCount: savedLikeCount !== undefined ? savedLikeCount : Math.floor(Math.random() * 5000) + 1000,
-        commentCount: Math.floor(Math.random() * 500) + 100,
+        commentCount: 10, // 使用固定评论数，与详情页一致
         shareCount: Math.floor(Math.random() * 200) + 50,
         collectCount: Math.floor(Math.random() * 100) + 20,
         isLiked: savedIsLiked,
