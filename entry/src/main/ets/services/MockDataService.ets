@@ -1,4 +1,4 @@
-import { NewsItem, NewsType, AuthorInfo, HotSearch, Topic, Message, MessageType, Comment, UserInfo, LikeResult } from '../models/NewsModel';
+﻿import { NewsItem, NewsType, AuthorInfo, HotSearch, Topic, Message, MessageType, Comment, UserInfo, LikeResult } from '../models/NewsModel';
 import { PreferencesUtil } from '../utils/PreferencesUtil';
 
 /**
@@ -21,6 +21,8 @@ export class MockDataService {
   // 持久化存储的key
   private static readonly COMMENTS_STORAGE_KEY = 'comments_data';
   private static readonly COMMENT_COUNT_STORAGE_KEY = 'comment_count_data';
+  private static readonly COMMENT_LIKE_STATUS_KEY = 'comment_like_status';
+  private static readonly COMMENT_LIKE_COUNT_KEY = 'comment_like_count';
   
   // 全局状态版本号，用于通知页面刷新
   private static stateVersion: number = 0;
@@ -936,8 +938,35 @@ export class MockDataService {
     }
   }
 
+  /**
+   * 保存评论点赞状态到本地存储（内部方法）
+   */
+  private static async saveCommentLikeStatus(): Promise<void> {
+    try {
+      // 保存评论点赞状态
+      const commentLikeStatusObj: Record<string, boolean> = {};
+      MockDataService.commentLikeStatus.forEach((value, key) => {
+        commentLikeStatusObj[key] = value;
+      });
+      await PreferencesUtil.put(MockDataService.COMMENT_LIKE_STATUS_KEY, JSON.stringify(commentLikeStatusObj));
+
+      // 保存评论点赞数
+      const commentLikeCountObj: Record<string, number> = {};
+      MockDataService.commentLikeCount.forEach((value, key) => {
+        commentLikeCountObj[key] = value;
+      });
+      await PreferencesUtil.put(MockDataService.COMMENT_LIKE_COUNT_KEY, JSON.stringify(commentLikeCountObj));
+
+      console.info('MockDataService: 评论点赞状态已保存');
+    } catch (error) {
+      console.error('MockDataService: 保存评论点赞状态失败', error);
+    }
+  }
+
   private static getRandomMessageType(): MessageType {
     const types = [MessageType.COMMENT, MessageType.LIKE, MessageType.SYSTEM, MessageType.FOLLOW];
     return types[Math.floor(Math.random() * types.length)];
   }
 }
+
+

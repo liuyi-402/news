@@ -39,6 +39,13 @@ export default class EntryAbility extends UIAbility {
 
   onDestroy(): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
+    
+    // 在应用销毁时保存评论数据
+    MockDataService.saveCommentsToStorage().then(() => {
+      hilog.info(DOMAIN, 'testTag', '评论数据已保存');
+    }).catch((error: Error) => {
+      hilog.error(DOMAIN, 'testTag', '保存评论数据失败: %{public}s', JSON.stringify(error));
+    });
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
@@ -67,5 +74,12 @@ export default class EntryAbility extends UIAbility {
   onBackground(): void {
     // Ability has back to background
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
+    
+    // 在应用进入后台时保存评论数据
+    MockDataService.saveCommentsToStorage().then(() => {
+      hilog.info(DOMAIN, 'testTag', '评论数据已保存到后台');
+    }).catch((error: Error) => {
+      hilog.error(DOMAIN, 'testTag', '保存评论数据失败: %{public}s', JSON.stringify(error));
+    });
   }
 }
