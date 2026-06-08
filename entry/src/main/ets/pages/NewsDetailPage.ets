@@ -11,7 +11,6 @@ import router from '@ohos.router';
 @Entry
 @Component
 struct NewsDetailPage {
-  @Prop newsId: string = '';
   @State newsItem: NewsItem | null = null;
   @State commentList: Comment[] = [];
   @State totalCommentCount: number = 0;
@@ -19,6 +18,7 @@ struct NewsDetailPage {
   @State fontSize: number = CommonConstants.FONT_SIZE.BODY;
   @State isNightMode: boolean = false;
   @State showMoreMenu: boolean = false;
+  @State isFollowed: boolean = false; // 关注状态
 
   aboutToAppear() {
     this.loadNewsDetail();
@@ -135,13 +135,16 @@ struct NewsDetailPage {
       .layoutWeight(1)
 
       // 关注按钮
-      Button('关注')
+      Button(this.isFollowed ? '已关注' : '关注')
         .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-        .fontColor(CommonConstants.COLORS.WHITE)
-        .backgroundColor(CommonConstants.COLORS.PRIMARY)
+        .fontColor(this.isFollowed ? CommonConstants.COLORS.TEXT_SECONDARY : CommonConstants.COLORS.WHITE)
+        .backgroundColor(this.isFollowed ? CommonConstants.COLORS.BACKGROUND : CommonConstants.COLORS.PRIMARY)
         .borderRadius(CommonConstants.BORDER_RADIUS.ROUND)
         .height(28)
         .padding({ left: 16, right: 16 })
+        .onClick(() => {
+          this.toggleFollow();
+        })
     }
     .width('100%')
     .margin({ top: CommonConstants.SPACING.MD })
@@ -177,7 +180,7 @@ struct NewsDetailPage {
   @Builder
   CommentSection() {
     CommentSection({
-      newsId: this.newsItem?.id || this.newsId,
+      newsId: this.newsItem?.id || '',
       commentList: $commentList,
       totalCommentCount: $totalCommentCount,
       isNightMode: this.isNightMode,
@@ -332,16 +335,17 @@ struct NewsDetailPage {
       // 如果传递了完整的新闻对象，直接使用
       this.newsItem = params['newsItem'] as NewsItem;
       console.log('NewsDetailPage: 使用传递的新闻对象');
-    } else {
-      // 如果没有传递新闻对象，则根据 newsId 查找（兼容旧逻辑）
-      console.log('NewsDetailPage: 根据 newsId 查找新闻');
+    } else if (params && params['newsId']) {
+      // 如果传递了 newsId，则根据 newsId 查找
+      const newsId = params['newsId'] as string;
+      console.log('NewsDetailPage: 根据 newsId 查找新闻:', newsId);
       const allCategories = ['要闻', '财经', '娱乐', '体育', '科技', '社会', '国际', '军事', '教育', '健康'];
       let foundNews: NewsItem | undefined = undefined;
       
       // 遍历所有分类查找对应的新闻
       for (const category of allCategories) {
         const newsList = MockDataService.getNewsList(category, 1);
-        foundNews = newsList.find(item => item.id === this.newsId);
+        foundNews = newsList.find(item => item.id === newsId);
         if (foundNews) {
           break; // 找到后立即退出循环
         }
@@ -354,6 +358,11 @@ struct NewsDetailPage {
       }
       
       this.newsItem = foundNews;
+    } else {
+      // 如果没有传递任何参数，使用默认第一条新闻
+      console.log('NewsDetailPage: 使用默认新闻');
+      const defaultList = MockDataService.getNewsList();
+      this.newsItem = defaultList[0];
     }
     
     // 应用点赞状态和实际评论数
@@ -393,6 +402,8 @@ struct NewsDetailPage {
       this.totalCommentCount = MockDataService.getCommentTotalCount(this.newsItem.id);
       // 更新评论数缓存，确保封面页和详情页一致
       MockDataService.newsCommentCount.set(this.newsItem.id, this.totalCommentCount);
+      // 加载作者关注状态
+      this.isFollowed = MockDataService.getAuthorFollowStatus(this.newsItem.author.id);
       console.log(`NewsDetailPage: 加载评论 ${this.newsItem.id}, 评论数: ${this.commentList.length}`);
     }
   }
@@ -433,6 +444,16 @@ struct NewsDetailPage {
     MockDataService.notifyNewsLikeChanged();
     
     console.log(`新闻点赞状态: ${result.isLiked ? '已点赞' : '取消点赞'}, 点赞数: ${result.likeCount}`);
+  }
+
+  /**
+   * 切换关注状态
+   */
+  private toggleFollow() {
+    if (!this.newsItem) return;
+    
+    this.isFollowed = MockDataService.toggleAuthorFollow(this.newsItem.author.id);
+    console.log(`作者关注状态: ${this.isFollowed ? '已关注' : '已取消关注'}`);
   }
 
   private formatCount(count: number): string {

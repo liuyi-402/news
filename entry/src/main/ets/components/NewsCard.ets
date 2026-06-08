@@ -1,13 +1,21 @@
 // 新闻卡片组件
 import { NewsItem, NewsType } from '../models/NewsModel'
+import { MockDataService } from '../services/MockDataService'
 
 @Component
 export struct NewsCard {
   @Prop newsItem: NewsItem | null = null
+  @State isFollowed: boolean = false // 关注状态
   onLike?: (newsId: string) => void
   onComment?: (newsId: string) => void
-  onShare?: (newsId: string) => void
   onCollect?: (newsId: string) => void
+
+  aboutToAppear() {
+    // 加载作者关注状态
+    if (this.newsItem) {
+      this.isFollowed = MockDataService.getAuthorFollowStatus(this.newsItem.author.id);
+    }
+  }
 
   build() {
     if (this.newsItem) {
@@ -85,13 +93,16 @@ export struct NewsCard {
       .margin({ left: 12 })
 
       // 关注按钮
-      Button('关注')
+      Button(this.isFollowed ? '已关注' : '关注')
         .fontSize(13)
-        .fontColor('#FF6B6B')
-        .backgroundColor('#FFE5E5')
+        .fontColor(this.isFollowed ? '#999999' : '#FF6B6B')
+        .backgroundColor(this.isFollowed ? '#F5F5F5' : '#FFE5E5')
         .borderRadius(15)
         .height(28)
         .padding({ left: 12, right: 12 })
+        .onClick(() => {
+          this.toggleFollow();
+        })
     }
     .width('100%')
     .alignItems(VerticalAlign.Center)
@@ -187,15 +198,6 @@ export struct NewsCard {
   @Builder
   InteractionBar() {
     Row() {
-      // 转发
-      this.InteractionButton('🔄', this.newsItem?.shareCount || 0, () => {
-        if (this.onShare && this.newsItem) {
-          this.onShare(this.newsItem.id)
-        }
-      })
-
-      Blank()
-
       // 评论
       this.InteractionButton('💬', this.newsItem?.commentCount || 0, () => {
         if (this.onComment && this.newsItem) {
@@ -276,5 +278,13 @@ export struct NewsCard {
       return `${(num / 10000).toFixed(1)}万`
     }
     return num.toString()
+  }
+
+  // 切换关注状态
+  private toggleFollow() {
+    if (!this.newsItem) return;
+    
+    this.isFollowed = MockDataService.toggleAuthorFollow(this.newsItem.author.id);
+    console.log(`NewsCard: 作者关注状态: ${this.isFollowed ? '已关注' : '已取消关注'}`);
   }
 }

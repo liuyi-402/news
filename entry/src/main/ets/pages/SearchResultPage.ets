@@ -420,9 +420,6 @@ struct SearchResultPage {
               onCommentClick: (item: NewsItem) => {
                 this.onCommentClick(item);
               },
-              onShareClick: (item: NewsItem) => {
-                this.onShareClick(item);
-              },
               onCollectClick: (item: NewsItem) => {
                 this.onCollectClick(item);
               }
@@ -585,14 +582,6 @@ struct SearchResultPage {
     }).catch((error: Error) => {
       console.error('跳转新闻详情失败:', error.message);
     });
-  }
-  
-  /**
-   * 分享新闻
-   */
-  private onShareClick(news: NewsItem) {
-    // TODO: 显示分享菜单
-    console.log(`SearchResultPage: 点击分享: ${news.title}`);
   }
   
   /**

@@ -10,7 +10,6 @@ export struct NewsCardComponent {
   onCardClick?: (news: NewsItem) => void;
   onLikeClick?: (news: NewsItem) => void;
   onCommentClick?: (news: NewsItem) => void;
-  onShareClick?: (news: NewsItem) => void;
   onCollectClick?: (news: NewsItem) => void;
   
   build() {
@@ -300,22 +299,6 @@ export struct NewsCardComponent {
       .onClick(() => {
         if (this.onCommentClick) {
           this.onCommentClick(this.newsItem);
-        }
-      })
-      
-      // 分享
-      Row({ space: 4 }) {
-        Image($r('app.media.ic_share'))
-          .width(20)
-          .height(20)
-        
-        Text(this.formatCount(this.newsItem.shareCount))
-          .fontSize(CommonConstants.FONT_SIZE.CAPTION)
-          .fontColor(CommonConstants.COLORS.TEXT_SECONDARY)
-      }
-      .onClick(() => {
-        if (this.onShareClick) {
-          this.onShareClick(this.newsItem);
         }
       })
       

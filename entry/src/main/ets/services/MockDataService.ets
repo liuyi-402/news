@@ -35,6 +35,8 @@ export class MockDataService {
   private static commentsData: Map<string, Comment[]> = new Map();
   // 评论总数缓存
   private static commentTotalCount: Map<string, number> = new Map();
+  // 关注状态缓存（作者ID -> 是否已关注）
+  private static authorFollowStatus: Map<string, boolean> = new Map();
   
   // 全局状态版本号，用于通知页面刷新
   private static stateVersion: number = 0;
@@ -447,6 +449,32 @@ export class MockDataService {
     };
     
     return result;
+  }
+
+  /**
+   * 切换作者关注状态
+   * @param authorId 作者ID
+   * @returns 是否已关注
+   */
+  static toggleAuthorFollow(authorId: string): boolean {
+    const isFollowed = MockDataService.authorFollowStatus.get(authorId) || false;
+    const newIsFollowed = !isFollowed;
+    
+    // 更新关注状态
+    MockDataService.authorFollowStatus.set(authorId, newIsFollowed);
+    
+    console.log(`MockDataService: 作者 ${authorId} ${newIsFollowed ? '已关注' : '已取消关注'}`);
+    
+    return newIsFollowed;
+  }
+
+  /**
+   * 获取作者关注状态
+   * @param authorId 作者ID
+   * @returns 是否已关注
+   */
+  static getAuthorFollowStatus(authorId: string): boolean {
+    return MockDataService.authorFollowStatus.get(authorId) || false;
   }
 
   /**

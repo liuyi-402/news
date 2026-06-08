@@ -191,9 +191,6 @@ export struct HomePage {
                 onCommentClick: (item: NewsItem) => {
                   this.onCommentClick(item);
                 },
-                onShareClick: (item: NewsItem) => {
-                  this.onShareClick(item);
-                },
                 onCollectClick: (item: NewsItem) => {
                   this.onCollectClick(index);
                 }
@@ -418,11 +415,6 @@ export struct HomePage {
   private onCommentClick(news: NewsItem) {
     // TODO: 跳转到评论页
     console.log(`点击评论: ${news.title}`);
-  }
-  
-  private onShareClick(news: NewsItem) {
-    // TODO: 显示分享菜单
-    console.log(`点击分享: ${news.title}`);
   }
   
   private onCollectClick(index: number) {
