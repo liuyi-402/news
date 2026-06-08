@@ -1,0 +1,8 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/SearchResultPage",
+    "pages/NewsDetailPage",
+    "pages/TopicDetailPage"
+  ]
+}
