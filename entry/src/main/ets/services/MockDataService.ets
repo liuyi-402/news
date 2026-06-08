@@ -321,6 +321,54 @@ export class MockDataService {
   }
 
   /**
+   * 获取所有消息列表（统一列表，不分类）
+   */
+  static getAllMessageList(): Message[] {
+    const messages: Message[] = [];
+    const types = [MessageType.PRIVATE, MessageType.LIKE, MessageType.COMMENT, MessageType.COLLECT, MessageType.SYSTEM];
+    
+    for (let i = 0; i < 15; i++) {
+      const type = types[i % types.length];
+      let content = '';
+      let title = '';
+      
+      switch (type) {
+        case MessageType.PRIVATE:
+          content = `你好，这是第${i + 1}条私信内容`;
+          title = '';
+          break;
+        case MessageType.LIKE:
+          content = '赞了你的作品';
+          title = '';
+          break;
+        case MessageType.COMMENT:
+          content = `评论了你的作品：这是第${i + 1}条评论`;
+          title = '';
+          break;
+        case MessageType.COLLECT:
+          content = '收藏了你的作品';
+          title = '';
+          break;
+        case MessageType.SYSTEM:
+          content = '系统通知：您的账号已完成实名认证';
+          title = '系统通知';
+          break;
+      }
+      
+      messages.push({
+        id: `msg_${i}`,
+        type: type,
+        title: title,
+        content: content,
+        sender: MockDataService.getMockAuthor(),
+        createTime: `${i + 1}小时前`,
+        isRead: i > 5
+      });
+    }
+    return messages;
+  }
+
+  /**
    * 获取评论列表
    */
   static getCommentList(newsId: string): Comment[] {

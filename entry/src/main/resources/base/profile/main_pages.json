@@ -3,6 +3,9 @@
     "pages/Index",
     "pages/SearchResultPage",
     "pages/NewsDetailPage",
-    "pages/TopicDetailPage"
+    "pages/TopicDetailPage",
+    "pages/MessageDetailPage",
+    "pages/ChatPage",
+    "pages/UserProfilePage"
   ]
 }
