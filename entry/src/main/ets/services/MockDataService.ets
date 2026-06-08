@@ -76,45 +76,23 @@ export class MockDataService {
       // 获取已保存的收藏状态和收藏数
       const savedIsCollected = MockDataService.newsCollectStatus.get(newsId) || false;
       const savedCollectCount = MockDataService.newsCollectCount.get(newsId);
-      // 获取已保存的评论数
-      const savedCommentCount = MockDataService.newsCommentCount.get(newsId);
       
-      // 确保评论数据与评论数一致
-      let commentCount: number = savedCommentCount !== undefined ? savedCommentCount : 0;
+      // 确保评论数据存在，并获取实际评论数
+      let commentCount: number;
       if (!MockDataService.commentsData.has(newsId)) {
-        // 如果没有评论数据，根据保存的评论数生成评论列表
-        if (savedCommentCount !== undefined) {
-          // 使用保存的评论数生成评论
-          const comments = MockDataService.generateComments(newsId, savedCommentCount);
-          MockDataService.commentsData.set(newsId, comments);
-          commentCount = savedCommentCount;
-        } else {
-          // 生成随机数量的评论（5-15条）
-          const randomCommentCount = Math.floor(Math.random() * 11) + 5;
-          const comments = MockDataService.generateComments(newsId, randomCommentCount);
-          MockDataService.commentsData.set(newsId, comments);
-          commentCount = randomCommentCount;
-          MockDataService.newsCommentCount.set(newsId, commentCount);
-        }
+        // 如果没有评论数据，生成新的评论列表
+        const randomCommentCount = Math.floor(Math.random() * 11) + 5;
+        const comments = MockDataService.generateComments(newsId, randomCommentCount);
+        MockDataService.commentsData.set(newsId, comments);
+        commentCount = randomCommentCount;
+        // 保存评论数
+        MockDataService.newsCommentCount.set(newsId, commentCount);
       } else {
-        // 如果已有评论数据，使用实际评论数量
+        // 如果已有评论数据，使用实际评论列表的长度
         const existingComments = MockDataService.commentsData.get(newsId);
-        const actualCount = existingComments ? existingComments.length : 0;
-        
-        if (savedCommentCount !== undefined) {
-          // 如果保存的评论数与实际评论数不一致，以保存的为准重新生成
-          if (savedCommentCount !== actualCount) {
-            const comments = MockDataService.generateComments(newsId, savedCommentCount);
-            MockDataService.commentsData.set(newsId, comments);
-            commentCount = savedCommentCount;
-          } else {
-            commentCount = savedCommentCount;
-          }
-        } else {
-          // 如果没有保存的评论数，使用实际评论数
-          commentCount = actualCount;
-          MockDataService.newsCommentCount.set(newsId, commentCount);
-        }
+        commentCount = existingComments ? existingComments.length : 0;
+        // 更新保存的评论数，确保与实际一致
+        MockDataService.newsCommentCount.set(newsId, commentCount);
       }
 
       newsList.push({
@@ -549,6 +527,8 @@ export class MockDataService {
       // 如果没有，生成新的评论数据
       comments = MockDataService.getCommentList(newsId);
       MockDataService.commentsData.set(newsId, comments);
+      // 更新评论数，确保与实际评论列表一致
+      MockDataService.newsCommentCount.set(newsId, comments.length);
     }
     
     // 应用点赞状态

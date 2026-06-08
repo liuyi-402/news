@@ -501,8 +501,6 @@ struct NewsDetailPage {
     // 应用点赞状态
     if (this.newsItem) {
       const isLiked = MockDataService.getNewsLikeStatus(this.newsItem.id);
-      // 从持久化数据中获取实际的评论数
-      const actualCommentCount = MockDataService.newsCommentCount.get(this.newsItem.id);
       const news = this.newsItem;
       this.newsItem = {
         id: news.id,
@@ -516,7 +514,7 @@ struct NewsDetailPage {
         publishTime: news.publishTime,
         readCount: news.readCount,
         likeCount: news.likeCount,
-        commentCount: actualCommentCount !== undefined ? actualCommentCount : news.commentCount,
+        commentCount: news.commentCount, // 先使用原始值，后面会根据实际评论列表更新
         shareCount: news.shareCount,
         collectCount: news.collectCount,
         isLiked: isLiked,
@@ -529,6 +527,36 @@ struct NewsDetailPage {
     
     // 加载对应评论（带状态）
     this.commentList = MockDataService.getCommentsWithStatus(this.newsId);
+    
+    // 根据实际评论列表长度更新评论数，确保首页和详情页一致
+    if (this.newsItem && this.commentList.length !== this.newsItem.commentCount) {
+      const actualCount = this.commentList.length;
+      const news = this.newsItem;
+      this.newsItem = {
+        id: news.id,
+        title: news.title,
+        summary: news.summary,
+        content: news.content,
+        coverImages: news.coverImages,
+        category: news.category,
+        source: news.source,
+        author: news.author,
+        publishTime: news.publishTime,
+        readCount: news.readCount,
+        likeCount: news.likeCount,
+        commentCount: actualCount,
+        shareCount: news.shareCount,
+        collectCount: news.collectCount,
+        isLiked: news.isLiked,
+        isCollected: news.isCollected,
+        isRead: news.isRead,
+        type: news.type,
+        videoUrl: news.videoUrl
+      };
+      // 同步更新到 MockDataService，确保首页也能获取到正确的评论数
+      MockDataService.newsCommentCount.set(news.id, actualCount);
+      console.log(`NewsDetailPage: 更新评论数为实际评论列表长度: ${actualCount}`);
+    }
   }
 
   /**
