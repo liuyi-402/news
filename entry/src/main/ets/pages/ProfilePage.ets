@@ -1,6 +1,8 @@
 import { UserInfo } from '../models/NewsModel';
 import { MockDataService } from '../services/MockDataService';
+import { PublishService } from '../services/PublishService';
 import { CommonConstants } from '../common/CommonConstants';
+import { router } from '@kit.ArkUI';
 
 /**
  * 菜单项接口
@@ -32,6 +34,14 @@ export struct ProfilePage {
   
   aboutToAppear() {
     this.loadUserInfo();
+    // 更新我的发布数量
+    this.updatePublishCount();
+  }
+  
+  // 更新我的发布数量
+  private updatePublishCount() {
+    const count = PublishService.getPublishCount();
+    this.menuItems[0].count = count.toString();
   }
   
   build() {
@@ -353,8 +363,37 @@ export struct ProfilePage {
   }
   
   private navigateTo(route: string) {
-    // TODO: 路由跳转
     console.log(`跳转到: ${route}`);
+    
+    switch (route) {
+      case 'MyPublish':
+        // 跳转到我的发布页面
+        router.pushUrl({
+          url: 'pages/MyPublishPage'
+        }).catch((err: Error) => {
+          console.error(`跳转失败: ${err.message}`);
+        });
+        break;
+      case 'Setting':
+        // 跳转到设置页面
+        router.pushUrl({
+          url: 'pages/SettingPage'
+        }).catch((err: Error) => {
+          console.error(`跳转失败: ${err.message}`);
+        });
+        break;
+      case 'Login':
+        // 跳转到登录页面
+        router.pushUrl({
+          url: 'pages/LoginPage'
+        }).catch((err: Error) => {
+          console.error(`跳转失败: ${err.message}`);
+        });
+        break;
+      default:
+        console.log(`未实现的路由: ${route}`);
+        break;
+    }
   }
   
   private onLogout() {

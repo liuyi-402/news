@@ -6,6 +6,7 @@
     "pages/TopicDetailPage",
     "pages/MessageDetailPage",
     "pages/ChatPage",
-    "pages/UserProfilePage"
+    "pages/UserProfilePage",
+    "pages/MyPublishPage"
   ]
 }

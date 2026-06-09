@@ -181,6 +181,25 @@ export interface LikeResult {
 }
 
 /**
+ * 爆料数据模型
+ */
+export interface PublishItem {
+  id: string;                    // 爆料ID
+  content: string;               // 爆料内容
+  images: string[];              // 图片列表
+  topic?: string;                // 话题
+  source?: string;               // 来源
+  isPublic: boolean;             // 是否公开
+  author: AuthorInfo;            // 作者信息
+  publishTime: string;           // 发布时间
+  likeCount: number;             // 点赞数
+  commentCount: number;          // 评论数
+  shareCount: number;            // 分享数
+  isLiked: boolean;              // 是否已点赞
+  comments?: Comment[];          // 评论列表
+}
+
+/**
  * 示例新闻数据
  */
 export const SAMPLE_NEWS: NewsItem[] = [

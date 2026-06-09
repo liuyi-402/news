@@ -1,4 +1,7 @@
 import { CommonConstants } from '../common/CommonConstants';
+import { PublishService } from '../services/PublishService';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 /**
  * 发布页 - 新闻爆料/投稿
@@ -12,6 +15,8 @@ export struct PublishPage {
   @State source: string = '';
   @State isPublic: boolean = true;
   @State maxImageCount: number = 9;
+  @State isPublishing: boolean = false;
+  @State showSuccess: boolean = false;
   
   build() {
     Column() {
@@ -42,6 +47,21 @@ export struct PublishPage {
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
       .layoutWeight(1)
+      
+      // 成功提示
+      if (this.showSuccess) {
+        Column() {
+          Text('发布成功！')
+            .fontSize(CommonConstants.FONT_SIZE.SUBTITLE)
+            .fontColor(CommonConstants.COLORS.WHITE)
+            .fontWeight(FontWeight.Bold)
+        }
+        .width('100%')
+        .height(60)
+        .backgroundColor(CommonConstants.COLORS.SUCCESS)
+        .justifyContent(FlexAlign.Center)
+        .transition(TransitionEffect.OPACITY.animation({ duration: 300 }))
+      }
     }
     .width('100%')
     .height('100%')
@@ -139,7 +159,7 @@ export struct PublishPage {
         ForEach(this.images, (image: string, index: number) => {
           GridItem() {
             Stack() {
-              Image($r('app.media.default_cover'))
+              Image(image)
                 .width('100%')
                 .height('100%')
                 .borderRadius(CommonConstants.BORDER_RADIUS.SM)
@@ -310,23 +330,63 @@ export struct PublishPage {
   }
   
   private onPublish() {
-    if (!this.canPublish()) {
+    if (!this.canPublish() || this.isPublishing) {
       return;
     }
     
-    // TODO: 发布新闻
-    console.log(`发布内容: ${this.content}`);
-    console.log(`图片数量: ${this.images.length}`);
-    console.log(`话题: ${this.topic}`);
-    console.log(`来源: ${this.source}`);
-    console.log(`权限: ${this.isPublic ? '公开' : '私密'}`);
+    this.isPublishing = true;
+    
+    // 调用发布服务
+    const result = PublishService.publish(
+      this.content,
+      this.images,
+      this.topic,
+      this.source,
+      this.isPublic
+    );
+    
+    console.log(`发布成功，ID: ${result.id}`);
+    
+    // 显示成功提示
+    this.showSuccess = true;
+    
+    // 延迟清空表单并隐藏提示
+    setTimeout(() => {
+      this.showSuccess = false;
+      this.content = '';
+      this.images = [];
+      this.topic = '';
+      this.source = '';
+      this.isPublic = true;
+      this.isPublishing = false;
+    }, 1500);
   }
   
-  private addImage() {
-    if (this.images.length < this.maxImageCount) {
-      // TODO: 打开图片选择器
-      this.images.push(`image_${this.images.length + 1}`);
-      console.log('添加图片');
+  private async addImage() {
+    if (this.images.length >= this.maxImageCount) {
+      return;
+    }
+    
+    try {
+      // 创建图片选择器
+      const photoPicker = new photoAccessHelper.PhotoViewPicker();
+      
+      // 配置选择选项
+      const photoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
+      photoSelectOptions.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+      photoSelectOptions.maxSelectNumber = this.maxImageCount - this.images.length;
+      
+      // 打开图片选择器
+      const photoSelectResult = await photoPicker.select(photoSelectOptions);
+      
+      if (photoSelectResult.photoUris && photoSelectResult.photoUris.length > 0) {
+        // 添加选中的图片
+        this.images.push(...photoSelectResult.photoUris);
+        console.log(`添加了 ${photoSelectResult.photoUris.length} 张图片`);
+      }
+    } catch (error) {
+      const err = error as BusinessError;
+      console.error(`选择图片失败: ${err.code} - ${err.message}`);
     }
   }
   
@@ -335,14 +395,40 @@ export struct PublishPage {
   }
   
   private selectTopic() {
-    // TODO: 打开话题选择器
-    this.topic = '热点新闻';
-    console.log('选择话题');
+    // 使用AlertDialog选择话题
+    AlertDialog.show({
+      title: '选择话题',
+      message: '请选择一个话题标签',
+      primaryButton: {
+        value: '热点新闻',
+        action: () => {
+          this.topic = '热点新闻';
+        }
+      },
+      secondaryButton: {
+        value: '取消',
+        action: () => {}
+      }
+    });
   }
   
   private inputSource() {
-    // TODO: 打开来源输入对话框
-    this.source = '网络整理';
-    console.log('输入来源');
+    // 使用TextInputDialog输入来源（简化处理，直接设置）
+    AlertDialog.show({
+      title: '标注来源',
+      message: '请选择来源类型',
+      primaryButton: {
+        value: '网络整理',
+        action: () => {
+          this.source = '网络整理';
+        }
+      },
+      secondaryButton: {
+        value: '原创',
+        action: () => {
+          this.source = '原创';
+        }
+      }
+    });
   }
 }
